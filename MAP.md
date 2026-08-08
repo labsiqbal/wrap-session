@@ -8,8 +8,8 @@ Clean session-exit skill: owner gate on persist/git, then write a wrap receipt u
 
 | Need | Open |
 |---|---|
-| Skill procedure | `SKILL.md` |
-| Project rules | `AGENTS.md` |
+| Skill procedure | [SKILL.md](SKILL.md) |
+| Project rules | [AGENTS.md](AGENTS.md) |
 | Hang status (read) | `~/projects/assistant/bin/wrap-status.sh` |
 
 ## Layout
