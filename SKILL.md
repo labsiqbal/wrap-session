@@ -21,6 +21,17 @@ work that must survive.
 
 Skip pure chitchat with nothing to keep.
 
+## Scope
+
+Wrap is for standalone human-agent sessions outside the private orchestrator.
+These never wrap and are never flagged as hanging:
+
+- the firstmate orchestrator primary (sessions running under `~/firstmate`)
+- `/firstmate` requests forwarded through Hermes (work runs in firstmate,
+  the Hermes session is only a relay)
+- Orca workers (sessions running under `~/orca/workspaces`)
+- subagents, scouts, and validation agents (Hermes `subagent`/`tool` sources)
+
 ## Hang semantics
 
 | Condition | Meaning |
@@ -31,11 +42,15 @@ Skip pure chitchat with nothing to keep.
 
 There is no `status: open` receipt. `/wrap` is always a clean close.
 
-Read hang status:
+Read hang status (detector lives in this repo):
 
 ```bash
-~/projects/assistant/bin/wrap-status.sh
+~/projects/skills-lab/wrap/bin/wrap-status.sh        # read-only report
+~/projects/skills-lab/wrap/bin/wrap-status.sh init   # first run only: create receipt dir + rollout baseline
 ```
+
+The report never writes. The only file the detector creates is the
+`.enabled-at` baseline marker, and only via explicit `init`.
 
 ## Receipt
 
