@@ -6,14 +6,12 @@ Lab-born skill: clean session exit. Owner gate on persist/git decisions,
 then a wrap receipt at `~/.local/state/session-wrap/`. Receipt present =
 closed; missing after real work = forgot `/wrap`. Source of truth here;
 installed copies in `~/.claude/skills`, `~/.hermes/skills`, `~/.codex/skills`.
-Follow the Standards: `~/projects/.standards/`.
+Follow the Standards: `~/workspace/.standards/`.
 
-Detector lives here: `bin/wrap-status.sh` (migrated from
-`~/projects/assistant/bin/wrap-status.sh`; Assistant retirement is a separate
-task). Read-only over receipts; the only write is the `.enabled-at` baseline
-via explicit `bin/wrap-status.sh init`. Scope: standalone human-agent
-sessions - firstmate primary, `/firstmate` requests, Orca workers,
-subagents/scouts/validators are excluded.
+Detector lives here: `bin/wrap-status.sh`. Read-only over receipts; the only
+write is the `.enabled-at` baseline via explicit `bin/wrap-status.sh init`.
+Scope: standalone human-agent sessions across harnesses; subagents, scouts,
+and validators are excluded.
 
 Tests: `bash tests/run-tests.sh` (plain bash, no framework).
 
