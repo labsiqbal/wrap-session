@@ -10,7 +10,7 @@ Close the current session cleanly. Chat is draft. Disk is truth.
 `/wrap` always means: ask first, persist what the owner approves, then leave a
 receipt that this session was closed.
 
-Source of truth: `~/projects/skills-lab/wrap/`. Installed copies in
+Source of truth: `~/workspace/tools/skills-lab/wrap/`. Installed copies in
 `~/.claude/skills`, `~/.hermes/skills`, `~/.codex/skills`.
 
 ## When to use
@@ -45,8 +45,8 @@ There is no `status: open` receipt. `/wrap` is always a clean close.
 Read hang status (detector lives in this repo):
 
 ```bash
-~/projects/skills-lab/wrap/bin/wrap-status.sh        # read-only report
-~/projects/skills-lab/wrap/bin/wrap-status.sh init   # first run only: create receipt dir + rollout baseline
+~/workspace/tools/skills-lab/wrap/bin/wrap-status.sh        # read-only report
+~/workspace/tools/skills-lab/wrap/bin/wrap-status.sh init   # first run only: create receipt dir + rollout baseline
 ```
 
 The report never writes. The only file the detector creates is the
@@ -82,7 +82,7 @@ Collect:
 
 - `session_id`: `$HERMES_SESSION_ID` if set; else generate `local-...`
 - `harness`: hermes if HERMES_* present, else infer; never invent a fake id
-- `cwd` + best Index project match under `~/projects`
+- `cwd` + best Index project match under `~/workspace`
 - `git status --short --branch` when cwd is a git work tree
 
 Done when: receipt header fields can be filled without blanks.
