@@ -1,19 +1,16 @@
-# wrap
+# wrap-session
 
 Type: coding · Ownership: tool · Delivery mode: local-only
 
-Lab-born skill: clean session exit. Owner gate on persist/git decisions,
-then a wrap receipt at `~/.local/state/session-wrap/`. Receipt present =
-closed; missing after real work = forgot `/wrap`. Source of truth here;
-installed copies in `~/.claude/skills`, `~/.hermes/skills`, `~/.codex/skills`.
-Follow the Standards: `~/workspace/.standards/`.
+Hermes-only skill: clean session exit. Owner gate on persist and Git actions,
+then receipt at `~/.local/state/session-wrap/`. Receipt present means clean
+close; missing after real work means likely missed wrap.
 
-Detector lives here: `bin/wrap-status.sh`. Read-only over receipts; the only
-write is the `.enabled-at` baseline via explicit `bin/wrap-status.sh init`.
-Scope: standalone human-agent sessions across harnesses; subagents, scouts,
-and validators are excluded.
+Detector: `bin/wrap-status.sh`. Read-only over receipts and Hermes state DB.
+Explicit `bin/wrap-status.sh init` creates receipt directory and `.enabled-at`
+baseline. Subagent and tool sessions are excluded.
 
-Tests: `bash tests/run-tests.sh` (plain bash, no framework).
+Tests: `bash tests/run-tests.sh` (plain Bash, no framework).
 
 ## Maintaining this file
 

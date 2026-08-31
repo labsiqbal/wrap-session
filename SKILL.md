@@ -1,95 +1,61 @@
 ---
-name: wrap
-description: Close a session cleanly. Owner gate on persist/git decisions, then write a wrap receipt.
+name: wrap-session
+description: "Use when wrapping a session with durable handoff."
 disable-model-invocation: true
 ---
 
-# Wrap
+# Wrap Session
 
-Close the current session cleanly. Chat is draft. Disk is truth.
-`/wrap` always means: ask first, persist what the owner approves, then leave a
-receipt that this session was closed.
+Close current Hermes session cleanly. Chat is draft. Disk is truth.
 
-Source of truth: `~/workspace/tools/skills-lab/wrap/`. Installed copies in
-`~/.claude/skills`, `~/.hermes/skills`, `~/.codex/skills`.
+`/wrap-session` means: inspect session residue, propose durable actions, wait for
+owner approval, execute only approved actions, then write receipt.
 
-## When to use
+## Use
 
-Owner types `/wrap` (or "wrap session", "tutup session") before leaving a
-session with durable residue: decisions, code, ops moves, routing rules, or
-work that must survive.
+Use before leaving session with code, decisions, documents, operational changes,
+or unfinished work another session must resume.
 
-Skip pure chitchat with nothing to keep.
-
-## Scope
-
-Wrap is for standalone human-agent sessions outside the private orchestrator.
-These never wrap and are never flagged as hanging:
-
-- the firstmate orchestrator primary (sessions running under `~/firstmate`)
-- `/firstmate` requests forwarded through Hermes (work runs in firstmate,
-  the Hermes session is only a relay)
-- Orca workers (sessions running under `~/orca/workspaces`)
-- subagents, scouts, and validation agents (Hermes `subagent`/`tool` sources)
-
-## Hang semantics
-
-| Condition | Meaning |
-|---|---|
-| Receipt exists | Session closed cleanly |
-| No receipt after real work | Session hanging: forgot `/wrap` or abandoned |
-| Work still unfinished | Not a hang. Put it in backlog / wiki / tickets as **deferred** |
-
-There is no `status: open` receipt. `/wrap` is always a clean close.
-
-Read hang status (detector lives in this repo):
-
-```bash
-~/workspace/tools/skills-lab/wrap/bin/wrap-status.sh        # read-only report
-~/workspace/tools/skills-lab/wrap/bin/wrap-status.sh init   # first run only: create receipt dir + rollout baseline
-```
-
-The report never writes. The only file the detector creates is the
-`.enabled-at` baseline marker, and only via explicit `init`.
+Skip chitchat with nothing durable.
 
 ## Receipt
 
-One file per session:
+One receipt per session:
 
 ```text
 ~/.local/state/session-wrap/<session_id>.md
 ```
 
-Header fields:
+Use `$HERMES_SESSION_ID` when available. Otherwise generate
+`local-YYYYMMDD-HHMMSS-<cwdslug>`.
 
-| Field | Values |
-|---|---|
-| `session_id` | harness id if known; else `local-YYYYMMDD-HHMMSS-<cwdslug>` |
-| `project` | Index name, `(root)`, or `(luar workspace)` |
-| `cwd` | absolute path |
-| `harness` | hermes / claude / codex / other |
-| `wrapped_at` | ISO-8601 |
-| `next` | one first action for the next session |
+Receipt front matter must contain:
 
-Receipt body: Done / Decisions / Written / Git / Deferred / Next.
-Re-wrap of same `session_id` overwrites (last wrap wins).
+- `session_id`
+- `harness: hermes`
+- `source`: `tui`, `desktop`, `telegram`, `cli`, or `other`
+- `cwd`: absolute path
+- `project`: nearest Git root name, nearest directory name, or `(root)`
+- `wrapped_at`: ISO-8601 timestamp
+- `next`: one first action
 
-## Steps
+Body headings: Done, Decisions, Written, Git, Deferred, Next.
 
-### 1. Identify the session
+A receipt means clean close. Unfinished work is **deferred**, never an open
+receipt. Re-wrap same session ID overwrites old receipt.
 
-Collect:
+## Procedure
 
-- `session_id`: `$HERMES_SESSION_ID` if set; else generate `local-...`
-- `harness`: hermes if HERMES_* present, else infer; never invent a fake id
-- `cwd` + best Index project match under `~/workspace`
-- `git status --short --branch` when cwd is a git work tree
+### 1. Inspect
 
-Done when: receipt header fields can be filled without blanks.
+Collect session ID, source, absolute current directory, project label, and—when
+inside a Git worktree—`git status --short --branch`.
 
-### 2. Draft the Wrap Plan (do not write yet)
+Completion: every receipt field has a truthful value.
 
-Show a short plan. Owner gate happens here.
+### 2. Draft Wrap Plan
+
+Do not write yet. Show:
 
 ```text
 WRAP PLAN
@@ -97,77 +63,62 @@ project: ...
 cwd: ...
 
 Done:
-- <outcome + evidence path/commit/URL>
+- outcome + evidence path, commit, or URL
 
 Decisions to persist:
-1. <decision> → propose write to <path>   # or skip
+1. decision → proposed path, or skip
 
 Deferred work:
-- <item> → propose home: backlog / wiki/log / ticket / skip
+- item → proposed backlog, ticket, or document home
 
 Git:
-- clean
-- dirty, leave intentional
-- commit proposed: <msg>
-- push? no (default) / yes
+- clean, or dirty and intentional
+- proposed commit message, if needed
+- push: no by default
 
-Memory (stable facts only):
-- <fact> | (none)
+Memory:
+- stable fact, or none
 
 Next session starts with:
-- <one action>
+- one action
 ```
 
-Rules:
-
-- Prefer pointers to existing artifacts. Do not dump the chat.
-- Ops progress/decisions → propose `wiki/log.md`.
-- Coding work → propose backlog / ticket / docs / commit.
-- Workspace routing/rules → propose `.standards/` / Index.
-- Stable preference/env pitfall → agent memory only.
-- Task progress, "Phase N done", commit SHAs as memory → **no**.
-- Never auto-write, auto-commit, or auto-push in this step.
-
-Done when: every durable residue is in Done, Decisions, Deferred, Git,
-Memory, or consciously absent.
+Point to existing artifacts. Do not copy whole chat into a document. Put every
+unfinished item in a real home or explicitly mark it skipped.
 
 ### 3. Owner gate
 
-Ask the owner to choose:
+Ask owner to approve or edit:
 
-1. which Decisions / Deferred / Memory actions to execute
-2. Git: leave / commit / commit+push (push only if asked)
-3. any edit to the plan
+1. Decisions, Deferred, and Memory writes
+2. Git action: leave, commit, or commit+push
+3. Plan edits
 
-Accept forms like: `all`, selected numbers, free-text edits, or `batal`.
+Accept `all`, selected numbers, free-text edits, or `cancel`.
 
-If aborted: write nothing; say wrap cancelled.
+On cancel: write nothing and report cancellation.
 
-Done when: owner approved the action set (or cancelled).
+### 4. Execute approved actions
 
-### 4. Execute approved actions only
+Run only approved writes and Git actions. Verify each external effect before
+claiming success. Report failures as failures.
 
-Run only approved writes/commits. After each, verify file exists / git state
-matches the claim. Failures are reported; do not invent success.
+### 5. Write receipt
 
-Done when: every approved action is done or explicitly failed with reason.
-
-### 5. Write the receipt
-
-Create `~/.local/state/session-wrap/` if needed. Write:
+Create parent directory when missing. Write:
 
 ```markdown
 ---
 session_id: <id>
-harness: <harness>
+harness: hermes
 source: <tui|desktop|telegram|cli|other>
-cwd: <abs>
-project: <name>
+cwd: <absolute path>
+project: <project>
 wrapped_at: <ISO-8601>
-next: <one line>
+next: <one action>
 ---
 
-# Wrap · <project>
+# Wrap Session · <project>
 
 ## Done
 - ...
@@ -176,46 +127,34 @@ next: <one line>
 - ...
 
 ## Written
-- path - what   # or (none)
+- path — what, or (none)
 
 ## Git
 - ...
 
 ## Deferred
-- item → home   # or (none)
+- item → home, or (none)
 
 ## Next
 - ...
 ```
 
-Done when: receipt file exists.
+Completion: receipt file exists at expected path.
 
 ### 6. Confirm
 
-Reply with:
+Reply with receipt path, files or Git changes made, deferred work and its home,
+and Next line. Stop.
 
-- receipt path
-- what was written / committed
-- deferred items and where they live
-- the single Next line
+## Optional status report
 
-Stop. Do not start the next task unless the owner asks.
+Run companion detector through Hermes `terminal`:
 
-## Anti-patterns
+```bash
+bin/wrap-status.sh
+bin/wrap-status.sh init
+```
 
-- Writing before the owner answers the gate
-- Dumping whole chat into `wiki/log.md`
-- Inventing `status: open` / intentional hang receipts
-- Leaving unfinished work only in chat with no deferred home
-- Writing memory for task logs or temporary TODO state
-- Committing or pushing without approval
-- Using `/handoff` when the need is clean exit (`/handoff` = portability)
-
-## Relation to other skills
-
-| Need | Use |
-|---|---|
-| Clean exit / hang detection | **`/wrap`** |
-| Portable packet to another agent/dir/harness | `/handoff` |
-| Compress context, keep same session | `/compact` |
-| Workspace sitrep | `sitrep` (reads wrap-status) |
+It reads Hermes `state.db` plus receipts. `init` is explicit and creates only
+receipt directory plus rollout baseline. Without Hermes state database, it
+reports receipts and exits successfully.

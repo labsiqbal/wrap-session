@@ -1,4 +1,4 @@
-# MAP · wrap
+# MAP · wrap-session
 
 ## What
 
@@ -24,11 +24,11 @@ tests/              Plain-bash test suite (fixtures.sh, run-tests.sh)
 
 ## Edges
 
-- Receipt path: `~/.local/state/session-wrap/<session_id>.md` — present = closed; missing after real work = hang.
-- Receipts live outside the repo; this tree is skill source of truth only.
-- Detector scope: standalone human-agent sessions. Firstmate primary, `/firstmate` requests, Orca workers, subagents/scouts/validators are excluded (see SKILL.md Scope).
-- Detector writes nothing except the `.enabled-at` baseline marker, only via `bin/wrap-status.sh init`.
-- Installed copies: `~/.claude/skills`, `~/.hermes/skills`, `~/.codex/skills` (re-sync from this repo on install).
+- Receipt path: `~/.local/state/session-wrap/<session_id>.md` — present = clean close; missing after real work = likely missed wrap.
+- Receipts live outside the repository.
+- Detector scope: standalone human Hermes sessions; `subagent` and `tool` sources are excluded.
+- Detector writes nothing except `.enabled-at`, and only via `bin/wrap-status.sh init`.
+- Install by copying this directory to `~/.hermes/skills/wrap-session`.
 
 ## Ignore by default
 

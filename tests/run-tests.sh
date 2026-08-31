@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Test runner for bin/wrap-status.sh. Plain bash assertions, no framework.
-# Seam under test: the CLI only - env in (WRAP_DIR, HERMES_DB, WRAP_HOURS,
-# FIRSTMATE_HOME, ORCA_WORK_ROOT, HERMES_SESSION_ID), stdout text + exit code
-# + filesystem side effects out.
+# Seam under test: CLI only. Env in (WRAP_DIR, HERMES_DB, WRAP_HOURS,
+# HERMES_SESSION_ID), stdout text + exit code + filesystem side effects out.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 source tests/fixtures.sh
@@ -78,44 +77,23 @@ assert_contains    "hanging tip quoted"               "$out" "real task message 
 assert_not_contains "wrapped session not flagged"     "$out" "· sess-wrapped ·"
 assert_not_contains "chitchat not flagged"            "$out" "sess-chitchat"
 
-# ── scope exclusions: orchestrator and managed agents never flagged ────────
+# ── scope exclusions: subagents and tools never flag ───────────────────────
 S=$(mktemp -d)
 mkdb "$S/state.db"
 WRAP_DIR="$S/wrap" HERMES_DB="$S/state.db" $DETECTOR init >/dev/null
 backdate_baseline "$S/wrap" 72
-FM_HOME="$S/firstmate"; ORCA_ROOT="$S/orca/workspaces"
-mkdir -p "$FM_HOME" "$ORCA_ROOT"
-
-add_work_session "$S/state.db" "sess-fm-request"
-python3 - "$S/state.db" <<'PY'
-import sqlite3, sys, time
-con = sqlite3.connect(sys.argv[1])
-ts = time.time() - 3600
-con.execute("UPDATE messages SET content=? WHERE session_id='sess-fm-request' AND role='user' AND id=(SELECT MIN(id) FROM messages WHERE session_id='sess-fm-request')",
-            ("/firstmate ship the wrap migration",))
-con.execute("UPDATE messages SET timestamp=?", (ts,))
-con.commit(); con.close()
-PY
-
-add_work_session "$S/state.db" "sess-fm-primary";   add_sess "$S/state.db" "sess-fm-primary" "cli" "$FM_HOME"
-add_work_session "$S/state.db" "sess-fm-nested";    add_sess "$S/state.db" "sess-fm-nested" "tui" "$FM_HOME/projects/firstmate-private"
-add_work_session "$S/state.db" "sess-orca-worker";  add_sess "$S/state.db" "sess-orca-worker" "cli" "$ORCA_ROOT/wrap/fm-task"
 add_work_session "$S/state.db" "sess-scout";        add_sess "$S/state.db" "sess-scout" "subagent" "$S"
 add_work_session "$S/state.db" "sess-validator";    add_sess "$S/state.db" "sess-validator" "tool" ""
 add_work_session "$S/state.db" "sess-standalone";   add_sess "$S/state.db" "sess-standalone" "tui" "$S/projects/thing"
 
-out=$(WRAP_DIR="$S/wrap" HERMES_DB="$S/state.db" FIRSTMATE_HOME="$FM_HOME" ORCA_WORK_ROOT="$ORCA_ROOT" $DETECTOR); rc=$?
+out=$(WRAP_DIR="$S/wrap" HERMES_DB="$S/state.db" $DETECTOR); rc=$?
 rm -rf "$S"
 
 assert_exit        "scoped run exits 0"                "$rc" 0
-assert_not_contains "/firstmate request excluded"      "$out" "sess-fm-request"
-assert_not_contains "orchestrator primary excluded"    "$out" "sess-fm-primary"
-assert_not_contains "nested firstmate cwd excluded"    "$out" "sess-fm-nested"
-assert_not_contains "orca worker excluded"             "$out" "sess-orca-worker"
 assert_not_contains "scout/subagent excluded"          "$out" "sess-scout"
 assert_not_contains "validator/tool excluded"          "$out" "sess-validator"
 assert_contains    "standalone session still flagged"  "$out" "sess-standalone"
-assert_contains    "scope note printed"                "$out" "scope = standalone sessions"
+assert_contains    "scope note printed"                "$out" "scope = standalone human Hermes sessions"
 
 # ── live session never flags itself ────────────────────────────────────────
 L=$(mktemp -d)
@@ -129,26 +107,17 @@ rm -rf "$L"
 assert_exit        "live-session run exits 0"   "$rc" 0
 assert_not_contains "live session not flagged"  "$out" "sess-live"
 
-# ── legacy db without sessions table: still works, content filters hold ────
+# ── legacy db without sessions table: standalone work still flags ──────────
 G=$(mktemp -d)
 mkdb_no_sessions "$G/state.db"
 WRAP_DIR="$G/wrap" HERMES_DB="$G/state.db" $DETECTOR init >/dev/null
 backdate_baseline "$G/wrap" 72
 add_work_session "$G/state.db" "sess-legacy-hang"
-add_work_session "$G/state.db" "sess-legacy-fm"
-python3 - "$G/state.db" <<'PY'
-import sqlite3, sys
-con = sqlite3.connect(sys.argv[1])
-con.execute("UPDATE messages SET content=? WHERE session_id='sess-legacy-fm' AND role='user' AND id=(SELECT MIN(id) FROM messages WHERE session_id='sess-legacy-fm')",
-            ("/firstmate status",))
-con.commit(); con.close()
-PY
 out=$(WRAP_DIR="$G/wrap" HERMES_DB="$G/state.db" $DETECTOR); rc=$?
 rm -rf "$G"
 
 assert_exit        "legacy db exits 0"                   "$rc" 0
 assert_contains    "legacy standalone flagged"           "$out" "sess-legacy-hang"
-assert_not_contains "legacy /firstmate still excluded"   "$out" "sess-legacy-fm"
 
 # ── stale receipts fall out of the recent window ───────────────────────────
 R=$(mktemp -d)
@@ -165,14 +134,16 @@ assert_contains    "total receipt counted"          "$out" "receipts: 1 total"
 assert_contains    "recent count is zero"           "$out" "recent=0"
 assert_not_contains "stale receipt not in recent"   "$out" "· fakeproj · sess-old"
 
-# ── missing hermes db: no crash, empty unwrapped ───────────────────────────
+# ── receipt-only mode: missing Hermes DB still reports receipts ─────────────
 N=$(mktemp -d)
-WRAP_DIR="$N/wrap" HERMES_DB="$N/nope.db" $DETECTOR init >/dev/null
+make_receipt "$N/wrap" "sess-receipt-only" "resume receipt-only work"
 out=$(WRAP_DIR="$N/wrap" HERMES_DB="$N/nope.db" $DETECTOR); rc=$?
 rm -rf "$N"
 
-assert_exit     "missing db exits 0"      "$rc" 0
-assert_contains "unwrapped section empty" "$out" "(none)"
+assert_exit     "receipt-only mode exits 0"       "$rc" 0
+assert_contains "receipt-only receipt reported"    "$out" "sess-receipt-only"
+assert_contains "receipt-only next shown"          "$out" "resume receipt-only work"
+assert_contains "receipt-only unwrapped empty"     "$out" "(none)"
 
 # ── bad args: usage error, exit 2, writes nothing ──────────────────────────
 B=$(mktemp -d)
