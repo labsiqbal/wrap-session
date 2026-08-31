@@ -26,7 +26,7 @@ tests/              Plain-bash test suite (fixtures.sh, run-tests.sh)
 
 - Receipt path: `~/.local/state/session-wrap/<session_id>.md` — present = clean close; missing after real work = likely missed wrap.
 - Receipts live outside the repository.
-- Detector scope: standalone human Hermes sessions; `subagent` and `tool` sources are excluded.
+- Skill is harness-neutral. Optional detector reads Hermes sessions and excludes `subagent` and `tool` sources.
 - Detector writes nothing except `.enabled-at`, and only via `bin/wrap-status.sh init`.
 - Install by copying this directory to `~/.hermes/skills/wrap-session`.
 

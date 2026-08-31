@@ -1,6 +1,6 @@
 # wrap-session
 
-Hermes-only skill for closing a working session with an owner-approved durable record. It is manually invoked: Hermes does not invoke it on its own.
+Skill for closing a working session with an owner-approved durable record. It is manually invoked.
 
 ## Trigger
 
@@ -16,7 +16,7 @@ Use it after work that leaves code, decisions, documents, operational changes, o
 
 ## Install
 
-Copy this skill directory into Hermes under its public name:
+Install this skill directory under your agent's skill directory. For Hermes:
 
 ```bash
 cp -R /path/to/wrap-session ~/.hermes/skills/wrap-session
@@ -46,7 +46,7 @@ Receipt records completed work, decisions, written artifacts, Git state, deferre
 
 ## Optional detector
 
-From installed skill directory, check recent receipts and likely unwrapped standalone Hermes sessions:
+Optional Hermes companion: from installed skill directory, check recent receipts and likely unwrapped sessions:
 
 ```bash
 bin/wrap-status.sh

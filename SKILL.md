@@ -1,12 +1,14 @@
 ---
 name: wrap-session
-description: "Use when wrapping a session with durable handoff."
+description: "Use when wrapping a session with a durable handoff."
+version: 0.1.0
+author: labsiqbal
 disable-model-invocation: true
 ---
 
 # Wrap Session
 
-Close current Hermes session cleanly. Chat is draft. Disk is truth.
+Close current session cleanly. Chat is draft. Disk is truth.
 
 `/wrap-session` means: inspect session residue, propose durable actions, wait for
 owner approval, execute only approved actions, then write receipt.
@@ -26,14 +28,14 @@ One receipt per session:
 ~/.local/state/session-wrap/<session_id>.md
 ```
 
-Use `$HERMES_SESSION_ID` when available. Otherwise generate
+Use harness session ID when available. Otherwise generate
 `local-YYYYMMDD-HHMMSS-<cwdslug>`.
 
 Receipt front matter must contain:
 
 - `session_id`
-- `harness: hermes`
-- `source`: `tui`, `desktop`, `telegram`, `cli`, or `other`
+- `harness`: active harness name, or `other`
+- `source`: active session surface, or `other`
 - `cwd`: absolute path
 - `project`: nearest Git root name, nearest directory name, or `(root)`
 - `wrapped_at`: ISO-8601 timestamp
@@ -110,8 +112,8 @@ Create parent directory when missing. Write:
 ```markdown
 ---
 session_id: <id>
-harness: hermes
-source: <tui|desktop|telegram|cli|other>
+harness: <harness>
+source: <session surface|other>
 cwd: <absolute path>
 project: <project>
 wrapped_at: <ISO-8601>
@@ -148,7 +150,7 @@ and Next line. Stop.
 
 ## Optional status report
 
-Run companion detector through Hermes `terminal`:
+Run companion detector when available:
 
 ```bash
 bin/wrap-status.sh

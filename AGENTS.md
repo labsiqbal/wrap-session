@@ -2,13 +2,13 @@
 
 Type: coding · Ownership: tool · Delivery mode: local-only
 
-Hermes-only skill: clean session exit. Owner gate on persist and Git actions,
+Harness-neutral skill: clean session exit. Owner gate on persist and Git actions,
 then receipt at `~/.local/state/session-wrap/`. Receipt present means clean
 close; missing after real work means likely missed wrap.
 
-Detector: `bin/wrap-status.sh`. Read-only over receipts and Hermes state DB.
-Explicit `bin/wrap-status.sh init` creates receipt directory and `.enabled-at`
-baseline. Subagent and tool sessions are excluded.
+Optional Hermes detector: `bin/wrap-status.sh`. Read-only over receipts and
+Hermes state DB. Explicit `bin/wrap-status.sh init` creates receipt directory
+and `.enabled-at` baseline. Subagent and tool sessions are excluded.
 
 Tests: `bash tests/run-tests.sh` (plain Bash, no framework).
 
