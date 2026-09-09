@@ -4,7 +4,7 @@
 #   wrap-status.sh [HOURS]   read-only report (default HOURS=48)
 #   wrap-status.sh init      explicit first-run init (see below)
 #
-# Receipt exists = session closed cleanly.
+# Valid receipt exists = session has a structurally complete closure record.
 # No receipt after real Hermes work (post-rollout) = likely forgot /wrap.
 #
 # Scope: standalone human Hermes sessions.
@@ -71,6 +71,7 @@ fi
 
 python3 - "$WRAP_DIR" "$HERMES_DB" "$CUTOFF" "$WINDOW_LABEL" "${HERMES_SESSION_ID:-}" "$BASELINE_TS" <<'PY'
 import re, sqlite3, sys, time
+from datetime import datetime
 from pathlib import Path
 
 wrap_dir = Path(sys.argv[1])
@@ -92,19 +93,45 @@ def parse_front(text: str) -> dict:
         out[k.strip()] = v.strip().strip('"').strip("'")
     return out
 
+def receipt_error(meta, text):
+    required = ("session_id", "harness", "source", "cwd", "project", "wrapped_at", "next")
+    missing = [key for key in required if not meta.get(key) or meta[key].lower() in ("null", "~")]
+    if missing:
+        return "missing fields: " + ", ".join(missing)
+    if not Path(meta["cwd"]).is_absolute():
+        return "cwd must be absolute"
+    try:
+        if not re.search(r"[Tt ]\d{2}:\d{2}", meta["wrapped_at"]):
+            return "wrapped_at must include a time"
+        datetime.fromisoformat(meta["wrapped_at"].replace("Z", "+00:00"))
+    except ValueError:
+        return "wrapped_at must be an ISO timestamp"
+    for heading in ("Done", "Decisions", "Written", "Git", "Deferred", "Next"):
+        section = re.search(r"^## " + heading + r"\s*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+        if not section or not section.group(1).strip():
+            return "missing or empty section: " + heading
+    return None
+
 receipts = []
+invalid = []
 if wrap_dir.exists():
-    for fp in sorted(wrap_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
+    for fp in sorted(wrap_dir.glob("*.md")):
         try:
+            modified = fp.stat().st_mtime
             text = fp.read_text(errors="replace")
         except Exception:
+            invalid.append((fp.name, "cannot read receipt"))
             continue
         meta = parse_front(text)
+        error = receipt_error(meta, text)
+        if error:
+            invalid.append((fp.name, error))
+            continue
         meta["_path"] = str(fp)
-        meta["_mtime"] = fp.stat().st_mtime
-        meta["session_id"] = meta.get("session_id") or fp.stem
+        meta["_mtime"] = modified
         receipts.append(meta)
 
+receipts.sort(key=lambda r: r["_mtime"], reverse=True)
 known = {r.get("session_id") for r in receipts if r.get("session_id")}
 recent = [r for r in receipts if r["_mtime"] >= cutoff]
 
@@ -112,6 +139,11 @@ print(f"WRAP ({hours})")
 print(f"  receipts: {len(receipts)} total · recent={len(recent)}")
 if baseline_ts <= 0:
     print("  hint: no baseline marker; run 'wrap-status.sh init' to anchor the rollout window")
+
+if invalid:
+    print("INVALID RECEIPTS (not counted as closed)")
+    for name, reason in invalid:
+        print(f"• {name}: {reason}")
 
 if recent:
     print("WRAPPED (recent)")
@@ -178,4 +210,6 @@ if unwrapped is not None:
         print("  note: Hermes sessions are auto-checked; receipts report completed sessions")
         print("  note: scope = standalone human Hermes sessions; subagents and tools are excluded")
         print("  note: unwrapped = likely forgot /wrap, not intentional hang")
+
+sys.exit(1 if invalid or unwrapped is None else 0)
 PY

@@ -3,8 +3,8 @@
 Type: coding · Ownership: tool · Delivery mode: local-only
 
 Harness-neutral skill: clean session exit. Owner gate on persist and Git actions,
-then receipt at `~/.local/state/session-wrap/`. Receipt present means clean
-close; missing after real work means likely missed wrap.
+then receipt at `~/.local/state/session-wrap/`. A structurally valid receipt marks a recorded close; missing or invalid after
+real work means likely missed wrap.
 
 Optional Hermes detector: `bin/wrap-status.sh`. Read-only over receipts and
 Hermes state DB. Explicit `bin/wrap-status.sh init` creates receipt directory

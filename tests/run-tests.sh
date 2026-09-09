@@ -153,5 +153,52 @@ assert_contains    "bogus arg prints usage"   "$out" "usage: wrap-status.sh"
 assert_not_exists  "bogus arg writes nothing" "$B/wrap"
 rm -rf "$B"
 
+# Malformed receipt must not close a real session.
+M=$(mktemp -d)
+mkdb "$M/state.db"
+add_work_session "$M/state.db" "sess-malformed"
+mkdir -p "$M/wrap"
+printf 'not a wrap receipt\n' > "$M/wrap/sess-malformed.md"
+out=$(WRAP_DIR="$M/wrap" HERMES_DB="$M/state.db" $DETECTOR); rc=$?
+assert_exit "invalid receipt reports attention" "$rc" 1
+assert_contains "invalid receipt is visible" "$out" "INVALID RECEIPTS"
+assert_contains "malformed receipt cannot hide work" "$out" "· sess-malformed ·"
+rm -rf "$M"
+
+# An unreadable database is incomplete coverage, not a clean report.
+E=$(mktemp -d)
+printf 'not sqlite\n' > "$E/broken.db"
+out=$(WRAP_DIR="$E/wrap" HERMES_DB="$E/broken.db" $DETECTOR); rc=$?
+assert_exit "database failure reports attention" "$rc" 1
+assert_contains "database failure is visible" "$out" "error reading state.db"
+rm -rf "$E"
+
+# Invalid timestamp / null metadata must never close a session.
+for corrupt in timestamp null; do
+  V=$(mktemp -d)
+  mkdb "$V/state.db"
+  add_work_session "$V/state.db" "sess-invalid"
+  make_receipt "$V/wrap" "sess-invalid"
+  if [ "$corrupt" = timestamp ]; then
+    sed -i 's/^wrapped_at:.*/wrapped_at: 2026-09-09/' "$V/wrap/sess-invalid.md"
+  else
+    sed -i 's/^harness:.*/harness: null/' "$V/wrap/sess-invalid.md"
+  fi
+  out=$(WRAP_DIR="$V/wrap" HERMES_DB="$V/state.db" $DETECTOR); rc=$?
+  assert_exit "$corrupt reports attention" "$rc" 1
+  assert_contains "$corrupt keeps session unwrapped" "$out" "· sess-invalid ·"
+  rm -rf "$V"
+done
+
+# Broken receipt links are reported without aborting the remaining coverage.
+D=$(mktemp -d)
+mkdir -p "$D/wrap"
+ln -s "$D/missing.md" "$D/wrap/broken.md"
+out=$(WRAP_DIR="$D/wrap" HERMES_DB="$D/no.db" $DETECTOR 2>&1); rc=$?
+assert_exit "broken receipt reports attention" "$rc" 1
+assert_contains "broken receipt is visible" "$out" "INVALID RECEIPTS"
+assert_not_contains "broken receipt does not crash" "$out" "Traceback"
+rm -rf "$D"
+
 echo; echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

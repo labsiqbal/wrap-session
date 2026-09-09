@@ -14,7 +14,7 @@ backdate_baseline() { hours_ago "$2" > "$1/.enabled-at"; }
 
 # make_receipt DIR SESSION_ID [NEXT] - a minimal valid wrap receipt
 make_receipt() {
-  local dir=$1 sid=$2 next=${3:-}
+  local dir=$1 sid=$2 next=${3:-none}
   mkdir -p "$dir"
   {
     printf -- '---\n'
@@ -27,6 +27,9 @@ make_receipt() {
     printf 'next: %s\n' "$next"
     printf -- '---\n\n'
     printf '# Wrap - fakeproj\n'
+    for heading in Done Decisions Written Git Deferred Next; do
+      printf '\n## %s\n- none\n' "$heading"
+    done
   } > "$dir/$sid.md"
 }
 

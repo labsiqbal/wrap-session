@@ -12,6 +12,7 @@ Session close with approved persistence and a durable receipt.
 | Project rules | [AGENTS.md](AGENTS.md) |
 | Hang status (read) | [bin/wrap-status.sh](bin/wrap-status.sh) |
 | Detector tests | [tests/run-tests.sh](tests/run-tests.sh) |
+| Work queue | [backlog.md](backlog.md) |
 
 ## Layout
 

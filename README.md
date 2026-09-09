@@ -60,6 +60,18 @@ bin/wrap-status.sh init
 
 Status is read-only. `init` creates receipt directory and `.enabled-at` baseline marker. Environment overrides are available for `WRAP_DIR`, `WRAP_HOURS`, and `HERMES_DB`.
 
+The detector counts a receipt only when all required metadata and nonempty
+Done, Decisions, Written, Git, Deferred, and Next sections are present. `cwd`
+must be absolute and `wrapped_at` must parse as an ISO timestamp. Invalid
+receipts remain on disk and appear under INVALID RECEIPTS; they do not suppress
+unwrapped-session findings. This validates the record's structure, not whether
+the recorded work actually happened.
+
+Exit 1 means invalid receipts or failed database inspection; exit 2 means bad
+arguments. Likely unwrapped sessions alone retain exit 0. A missing Hermes DB
+keeps receipt-only mode; an existing DB that cannot be read is a coverage error.
+
+
 ## Test
 
 ```bash
