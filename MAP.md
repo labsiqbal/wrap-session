@@ -13,12 +13,6 @@ Session close with approved persistence and a durable receipt.
 | Hang status (read) | [bin/wrap-status.sh](bin/wrap-status.sh) |
 | Detector tests | [tests/run-tests.sh](tests/run-tests.sh) |
 
-## Working artifacts
-
-| Need | Read |
-|---|---|
-| Work queue | [backlog.md](backlog.md) |
-
 ## Layout
 
 ```text
