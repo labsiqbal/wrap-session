@@ -1,4 +1,7 @@
 # Map - wrap
+Project facts: [context.md](context.md); generic procedure: workspace methods/task-loop.md. Explicit optional /wrap method remains native.
+
+Source maintenance versus session close: [CONTEXT.md](CONTEXT.md).
 
 ## Purpose
 
@@ -12,6 +15,11 @@ Session close with approved persistence and a durable receipt.
 | Project rules | [AGENTS.md](AGENTS.md) |
 | Hang status (read) | [bin/wrap-status.sh](bin/wrap-status.sh) |
 | Detector tests | [tests/run-tests.sh](tests/run-tests.sh) |
+
+## Working artifacts
+
+| Need | Read |
+|---|---|
 | Work queue | [backlog.md](backlog.md) |
 
 ## Layout

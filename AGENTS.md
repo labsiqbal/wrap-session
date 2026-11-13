@@ -1,6 +1,12 @@
 # wrap-session
 
-Type: coding · Ownership: tool · Delivery mode: local-only
+Read ~/workspace/AGENTS.md for shared rules. For a specialist method or
+delegation, read ~/workspace/.standards/agent-operations.md; load only the
+selected role guide. Project scope, queue and delivery rules remain local.
+
+Type: coding · Ownership: tool · Delivery mode: direct-PR
+
+Start with [MAP.md](MAP.md), [context.md](context.md) and current task. /wrap is optional explicit close, not mandatory approval for ordinary persistence.
 
 Harness-neutral skill: clean session exit. Owner gate on persist and Git actions,
 then receipt at `~/.local/state/session-wrap/`. A structurally valid receipt marks a recorded close; missing or invalid after
